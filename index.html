@@ -1,61 +1,85 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Enter</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background: #111;
-      color: white;
-      flex-direction: column;
-    }
-    input {
-      padding: 0.5rem;
-      font-size: 1rem;
-    }
-    button {
-      padding: 0.5rem 1rem;
-      margin-left: 0.5rem;
-      font-size: 1rem;
-    }
-    #error {
-      color: red;
-      margin-top: 1rem;
-      display: none;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TTRPG Tool — Login</title>
+<style>
+  body {
+    font-family: sans-serif;
+    background: #121212;
+    color: white;
+    margin: 0; padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    flex-direction: column;
+  }
+  #login-section {
+    text-align: center;
+  }
+  input {
+    padding: 0.5rem;
+    font-size: 1rem;
+  }
+  button {
+    padding: 0.5rem 1rem;
+    margin-left: 0.5rem;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  #error {
+    color: #f33;
+    margin-top: 1rem;
+    display: none;
+  }
+  #app {
+    display: none;
+    width: 90vw;
+    max-width: 900px;
+    margin: 1rem auto;
+    background: #222;
+    padding: 1rem;
+    border-radius: 8px;
+  }
+</style>
 </head>
 <body>
+
+<div id="login-section">
   <h1>Enter Password</h1>
-  <div>
-    <input type="password" id="password" placeholder="Password" />
-    <button onclick="checkPassword()">Enter</button>
-  </div>
+  <input type="password" id="password" placeholder="Password" />
+  <button onclick="checkPassword()">Enter</button>
   <div id="error">Incorrect password. Try again.</div>
+</div>
 
-  <script>
-    const expectedHash = "bea8dd5356861576487c01a76b7d1c9382aee1e3d9957c65e70a5418b99f635c";
+<div id="app">
+  <h2>Welcome to your TTRPG tool!</h2>
+  <p>This is where you’ll build and manage characters, roll dice, and so on.</p>
+</div>
 
-    async function checkPassword() {
-      const password = document.getElementById("password").value;
-      const encoder = new TextEncoder();
-      const data = encoder.encode(password);
-      const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+<script>
+  const expectedHash = "bea8dd5356861576487c01a76b7d1c9382aee1e3d9957c65e70a5418b99f635c";
 
-      if (hashHex === expectedHash) {
-        window.location.href = "app.html";
-      } else {
-        document.getElementById("error").style.display = "block";
-      }
+  async function checkPassword() {
+    const password = document.getElementById('password').value;
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+    if (hashHex === expectedHash) {
+      document.getElementById('login-section').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+    } else {
+      const err = document.getElementById('error');
+      err.style.display = 'block';
+      setTimeout(() => { err.style.display = 'none'; }, 3000);
     }
-  </script>
+  }
+</script>
+
 </body>
 </html>
