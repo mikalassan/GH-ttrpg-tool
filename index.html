@@ -1,85 +1,215 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>TTRPG Tool — Login</title>
-<style>
-  body {
-    font-family: sans-serif;
-    background: #121212;
-    color: white;
-    margin: 0; padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    flex-direction: column;
-  }
-  #login-section {
-    text-align: center;
-  }
-  input {
-    padding: 0.5rem;
-    font-size: 1rem;
-  }
-  button {
-    padding: 0.5rem 1rem;
-    margin-left: 0.5rem;
-    font-size: 1rem;
-    cursor: pointer;
-  }
-  #error {
-    color: #f33;
-    margin-top: 1rem;
-    display: none;
-  }
-  #app {
-    display: none;
-    width: 90vw;
-    max-width: 900px;
-    margin: 1rem auto;
-    background: #222;
-    padding: 1rem;
-    border-radius: 8px;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Graystone Hills Character Tool</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #121212;
+      color: white;
+      margin: 0; padding: 0;
+    }
+    .container {
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 1rem;
+      background: #1f1f1f;
+      border-radius: 8px;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    button, input, select {
+      margin: 0.5rem 0;
+      padding: 0.5rem;
+      font-size: 1rem;
+      border-radius: 4px;
+    }
+    input[type="file"] {
+      padding: 0;
+    }
+    .hidden {
+      display: none;
+    }
+    .stat-box {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .stat {
+      flex: 1 1 30%;
+    }
+    label {
+      display: block;
+      margin-top: 1rem;
+    }
+  </style>
 </head>
 <body>
 
-<div id="login-section">
-  <h1>Enter Password</h1>
-  <input type="password" id="password" placeholder="Password" />
-  <button onclick="checkPassword()">Enter</button>
-  <div id="error">Incorrect password. Try again.</div>
+<div class="container" id="entry">
+  <h1>Graystone Hills Character Tool</h1>
+  <button onclick="startNewCharacter()">Create New Character</button>
+  <label>
+    Or Load a Character:
+    <input type="file" accept=".json" onchange="loadCharacter(event)" />
+  </label>
 </div>
 
-<div id="app">
-  <h2>Hello chucklenuts</h2>
-  <p>If you read this you smell</p>
-</div>
+<div class="container hidden" id="creator"></div>
 
 <script>
-  const expectedHash = "bea8dd5356861576487c01a76b7d1c9382aee1e3d9957c65e70a5418b99f635c";
+const CLASSES = {
+  "Bogbeard": { saves: { Fear: 13, Magic: 14, Paralysis: 13 }, hd: 10 },
+  "Witch Hunter": { saves: { Fear: 13, Magic: 13, Paralysis: 12 }, hd: 10 },
+  "Swamp Scout": { saves: { Fear: 13, Magic: 14, Paralysis: 12 }, hd: 8 },
+  "Runesmith": { saves: { Fear: 12, Magic: 12, Paralysis: 14 }, hd: 8 },
+  "Eldritch Adept": { saves: { Fear: 15, Magic: 12, Paralysis: 14 }, hd: 6 },
+  "Elderkin": { saves: { Fear: 14, Magic: 11, Paralysis: 15 }, hd: 6 },
+  "Hollowed": { saves: { Fear: 13, Magic: 12, Paralysis: 14 }, hd: 8 },
+  "Vagabond": { saves: { Fear: 12, Magic: 13, Paralysis: 13 }, hd: 8 }
+};
 
-  async function checkPassword() {
-    const password = document.getElementById('password').value;
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+let character = {};
 
-    if (hashHex === expectedHash) {
-      document.getElementById('login-section').style.display = 'none';
-      document.getElementById('app').style.display = 'block';
-    } else {
-      const err = document.getElementById('error');
-      err.style.display = 'block';
-      setTimeout(() => { err.style.display = 'none'; }, 3000);
+function startNewCharacter() {
+  document.getElementById("entry").classList.add("hidden");
+  document.getElementById("creator").classList.remove("hidden");
+  buildStep1();
+}
+
+function loadCharacter(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      character = JSON.parse(e.target.result);
+      alert("Character loaded: " + character.name);
+      // TODO: show character sheet viewer later
+    } catch (err) {
+      alert("Failed to load character file.");
     }
-  }
-</script>
+  };
+  reader.readAsText(file);
+}
 
+function buildStep1() {
+  const c = document.getElementById("creator");
+  c.innerHTML = `
+    <h2>Step 1: Roll or Choose Ability Scores</h2>
+    <div class="stat-box" id="stats">
+      ${["STR", "DEX", "CON", "INT", "WIS", "CHA"].map(stat => `
+        <div class="stat">
+          <label>${stat}</label>
+          <input type="number" id="stat-${stat}" />
+        </div>`).join("")}
+    </div>
+    <button onclick="rollStats()">Roll 4d6 Drop Lowest</button>
+    <button onclick="useFastArray()">Use Fast Array</button>
+    <button onclick="buildStep2()">Next: Choose Class</button>
+  `;
+}
+
+function rollStats() {
+  const stats = ["STR", "DEX", "CON", "INT", "WIS", "CHA"];
+  stats.forEach(stat => {
+    const rolls = Array.from({length: 4}, () => Math.floor(Math.random() * 6) + 1);
+    rolls.sort((a,b)=>a-b).shift(); // drop lowest
+    const total = rolls.reduce((a,b)=>a+b,0);
+    document.getElementById(`stat-${stat}`).value = total;
+  });
+}
+
+function useFastArray() {
+  const fastArray = [15, 13, 12, 10, 9, 7];
+  const stats = ["STR", "DEX", "CON", "INT", "WIS", "CHA"];
+  stats.forEach((stat, i) => {
+    document.getElementById(`stat-${stat}`).value = fastArray[i];
+  });
+}
+
+function buildStep2() {
+  const stats = ["STR", "DEX", "CON", "INT", "WIS", "CHA"];
+  character.stats = {};
+  stats.forEach(stat => {
+    character.stats[stat] = parseInt(document.getElementById(`stat-${stat}`).value);
+  });
+  const c = document.getElementById("creator");
+  c.innerHTML = `
+    <h2>Step 2: Choose Class</h2>
+    <label>Class:
+      <select id="class-select">
+        ${Object.keys(CLASSES).map(cls => `<option value="${cls}">${cls}</option>`).join("")}
+      </select>
+    </label>
+    <label>Fighting Style:
+      <select id="style-select">
+        <option value="STR">Melee (Strength-based)</option>
+        <option value="DEX">Agile (Dexterity-based)</option>
+        <option value="INT">Arcane (Intelligence-based)</option>
+      </select>
+    </label>
+    <button onclick="buildStep3()">Next: Saves</button>
+  `;
+}
+
+function buildStep3() {
+  const cls = document.getElementById("class-select").value;
+  const style = document.getElementById("style-select").value;
+  character.class = cls;
+  character.fightingStyle = style;
+  character.saves = {...CLASSES[cls].saves};
+  character.hp = rollDice(CLASSES[cls].hd) + getMod(character.stats.CON);
+  const c = document.getElementById("creator");
+  c.innerHTML = `
+    <h2>Step 3: Saving Throws & HP</h2>
+    <p><strong>Class:</strong> ${cls}</p>
+    <p><strong>Fighting Style:</strong> ${style}</p>
+    <p><strong>Starting HP:</strong> ${character.hp}</p>
+    <ul>
+      ${Object.entries(character.saves).map(([k,v]) => `<li>${k}: ${v}</li>`).join("")}
+    </ul>
+    <button onclick="buildStep4()">Next: Gear</button>
+  `;
+}
+
+function buildStep4() {
+  character.silver = (rollDice(6) + rollDice(6) + rollDice(6)) * 10;
+  character.trinket = "A silver locket with no picture."; // default trinket, can be chosen later
+  const c = document.getElementById("creator");
+  c.innerHTML = `
+    <h2>Step 4: Starting Gear</h2>
+    <p>You start with ${character.silver} silver pieces.</p>
+    <label>Personal Trinket:
+      <input type="text" id="trinket" value="${character.trinket}" />
+    </label>
+    <button onclick="finalizeCharacter()">Finish & Save</button>
+  `;
+}
+
+function finalizeCharacter() {
+  character.trinket = document.getElementById("trinket").value;
+  const blob = new Blob([JSON.stringify(character, null, 2)], { type: 'application/json' });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${character.class}_Character.json`;
+  a.click();
+}
+function getMod(score) {
+  if (score <= 3) return -3;
+  if (score <= 5) return -2;
+  if (score <= 8) return -1;
+  if (score <= 12) return 0;
+  if (score <= 15) return +1;
+  if (score <= 17) return +2;
+  return +3;
+}
+function rollDice(sides) {
+  return Math.floor(Math.random() * sides) + 1;
+}
+</script>
 </body>
 </html>
