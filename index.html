@@ -141,11 +141,12 @@ function showFastArray() {
     ${stats.map(stat => `
       <label>${stat}:
         <select id="stat-${stat}">
+          <option value="">-- Choose --</option>
           ${values.map(v => `<option value="${v}">${v}</option>`).join("")}
         </select>
       </label><br/>
     `).join("")}
-    <button onclick="buildStep2()">Next: Choose Class</button>
+    <button onclick="validateFastArray()">Next: Choose Class</button>
   `;
 
   stats.forEach(stat => {
@@ -155,17 +156,24 @@ function showFastArray() {
 
 function enforceUniqueStats() {
   const stats = ["STR", "DEX", "CON", "INT", "WIS", "CHA"];
-  const used = new Set();
-  stats.forEach(stat => {
-    const select = document.getElementById(`stat-${stat}`);
-    const val = select.value;
-    if (used.has(val)) {
-      alert("Each value must be used only once.");
-      select.value = "";
-    } else {
-      used.add(val);
-    }
-  });
+  const selected = stats.map(stat => document.getElementById(`stat-${stat}`).value).filter(Boolean);
+  const duplicates = selected.filter((v, i, a) => a.indexOf(v) !== i);
+
+  if (duplicates.length) {
+    alert("Each value must be used only once.");
+    // reset the field that caused the duplicate
+    this.value = "";
+  }
+}
+
+function validateFastArray() {
+  const stats = ["STR", "DEX", "CON", "INT", "WIS", "CHA"];
+  const assigned = stats.map(stat => document.getElementById(`stat-${stat}`).value);
+  if (assigned.includes("") || new Set(assigned).size !== 6) {
+    alert("You must assign all values, and each value only once.");
+    return;
+  }
+  buildStep2();
 }
 
 function showRollStats() {
