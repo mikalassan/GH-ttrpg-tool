@@ -88,7 +88,6 @@ function loadCharacter(event) {
     try {
       character = JSON.parse(e.target.result);
       alert("Character loaded: " + character.name);
-      // TODO: show character sheet viewer later
     } catch (err) {
       alert("Failed to load character file.");
     }
@@ -99,36 +98,101 @@ function loadCharacter(event) {
 function buildStep1() {
   const c = document.getElementById("creator");
   c.innerHTML = `
-    <h2>Step 1: Roll or Choose Ability Scores</h2>
-    <div class="stat-box" id="stats">
-      ${["STR", "DEX", "CON", "INT", "WIS", "CHA"].map(stat => `
-        <div class="stat">
-          <label>${stat}</label>
-          <input type="number" id="stat-${stat}" />
-        </div>`).join("")}
-    </div>
-    <button onclick="rollStats()">Roll 4d6 Drop Lowest</button>
-    <button onclick="useFastArray()">Use Fast Array</button>
-    <button onclick="buildStep2()">Next: Choose Class</button>
+    <h2>Step 1: Choose Ability Score Method</h2>
+    <button onclick="showFastArray()">Use Fast Array</button>
+    <button onclick="showRollStats()">Roll 4d6 Drop Lowest</button>
+    <div id="stat-area"></div>
   `;
 }
 
-function rollStats() {
+function showFastArray() {
+  const statArea = document.getElementById("stat-area");
+  const values = [15, 13, 12, 10, 9, 7];
   const stats = ["STR", "DEX", "CON", "INT", "WIS", "CHA"];
+
+  statArea.innerHTML = `
+    <h3>Assign These Values: ${values.join(", ")}</h3>
+    ${stats.map(stat => `
+      <label>${stat}:
+        <select id="stat-${stat}">
+          ${values.map(v => `<option value="${v}">${v}</option>`).join("")}
+        </select>
+      </label><br/>
+    `).join("")}
+    <button onclick="buildStep2()">Next: Choose Class</button>
+  `;
+
   stats.forEach(stat => {
-    const rolls = Array.from({length: 4}, () => Math.floor(Math.random() * 6) + 1);
-    rolls.sort((a,b)=>a-b).shift(); // drop lowest
-    const total = rolls.reduce((a,b)=>a+b,0);
-    document.getElementById(`stat-${stat}`).value = total;
+    document.getElementById(`stat-${stat}`).addEventListener("change", enforceUniqueStats);
   });
 }
 
-function useFastArray() {
-  const fastArray = [15, 13, 12, 10, 9, 7];
+function enforceUniqueStats() {
   const stats = ["STR", "DEX", "CON", "INT", "WIS", "CHA"];
-  stats.forEach((stat, i) => {
-    document.getElementById(`stat-${stat}`).value = fastArray[i];
+  const used = new Set();
+  stats.forEach(stat => {
+    const select = document.getElementById(`stat-${stat}`);
+    const val = select.value;
+    if (used.has(val)) {
+      alert("Each value must be used only once.");
+      select.value = "";
+    } else {
+      used.add(val);
+    }
   });
+}
+
+function showRollStats() {
+  const statArea = document.getElementById("stat-area");
+  const stats = ["STR", "DEX", "CON", "INT", "WIS", "CHA"];
+  const rolls = {};
+  let swapped = false;
+
+  statArea.innerHTML = `
+    <button id="roll-btn" onclick="doRoll()">Roll Stats</button>
+    <div class="stat-box" id="rolled-stats"></div>
+    <div id="swap-controls" class="hidden">
+      <h4>Swap two stats (once only):</h4>
+      <select id="swap1">${stats.map(s=>`<option value="${s}">${s}</option>`)}</select>
+      <select id="swap2">${stats.map(s=>`<option value="${s}">${s}</option>`)}</select>
+      <button onclick="doSwap()">Swap</button>
+    </div>
+    <button id="next-btn" onclick="buildStep2()" class="hidden">Next: Choose Class</button>
+  `;
+
+  window.doRoll = () => {
+    document.getElementById("roll-btn").disabled = true;
+    const output = document.getElementById("rolled-stats");
+    output.innerHTML = "";
+    stats.forEach(stat => {
+      const roll = [0,0,0,0].map(() => Math.floor(Math.random()*6+1));
+      roll.sort((a,b)=>a-b);
+      roll.shift(); // drop lowest
+      const total = roll.reduce((a,b)=>a+b,0);
+      rolls[stat] = total;
+      output.innerHTML += `<div class="stat"><label>${stat}</label><input id="stat-${stat}" value="${total}" readonly></div>`;
+    });
+    document.getElementById("swap-controls").classList.remove("hidden");
+    document.getElementById("next-btn").classList.remove("hidden");
+  };
+
+  window.doSwap = () => {
+    if (swapped) {
+      alert("You may only swap once.");
+      return;
+    }
+    const s1 = document.getElementById("swap1").value;
+    const s2 = document.getElementById("swap2").value;
+    if (s1 === s2) {
+      alert("Choose two different stats to swap.");
+      return;
+    }
+    const val1 = document.getElementById(`stat-${s1}`).value;
+    const val2 = document.getElementById(`stat-${s2}`).value;
+    document.getElementById(`stat-${s1}`).value = val2;
+    document.getElementById(`stat-${s2}`).value = val1;
+    swapped = true;
+  };
 }
 
 function buildStep2() {
@@ -178,7 +242,7 @@ function buildStep3() {
 
 function buildStep4() {
   character.silver = (rollDice(6) + rollDice(6) + rollDice(6)) * 10;
-  character.trinket = "A silver locket with no picture."; // default trinket, can be chosen later
+  character.trinket = "A silver locket with no picture.";
   const c = document.getElementById("creator");
   c.innerHTML = `
     <h2>Step 4: Starting Gear</h2>
