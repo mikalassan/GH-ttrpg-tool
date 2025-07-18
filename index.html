@@ -145,11 +145,11 @@ function buildStep2() {
         ${Object.keys(CLASSES).map(cls => `<option value="${cls}">${cls}</option>`).join("")}
       </select>
     </label>
-    <label>Fighting Style:
+   <label>Fighting Style (used for melee & magic modifiers):
       <select id="style-select">
-        <option value="STR">Melee (Strength-based)</option>
-        <option value="DEX">Agile (Dexterity-based)</option>
-        <option value="INT">Arcane (Intelligence-based)</option>
+        ${["STR", "DEX", "CON", "INT", "WIS", "CHA"].map(stat => `
+          <option value="${stat}">${stat}</option>
+        `).join("")}
       </select>
     </label>
     <button onclick="buildStep3()">Next: Saves</button>
